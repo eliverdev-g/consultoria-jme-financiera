@@ -1,0 +1,6 @@
+{
+  "name": "JME Consultoría Financiera - Gestión de Créditos y Cobranza Predictiva",
+  "description": "Sistema integral de gestión de créditos en mora, convenios de pago y optimización automatizada de cobranzas mediante alertas predictivas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
