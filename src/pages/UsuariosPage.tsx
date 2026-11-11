@@ -1,47 +1,47 @@
-import React, { useState } from 'react';
-import { 
-  Users, 
-  UserCheck, 
-  UserX, 
-  Shield, 
-  Plus, 
-  Download, 
-  Edit3, 
-  Key, 
-  Check, 
+import React, { useState } from "react";
+import {
+  Users,
+  UserCheck,
+  UserX,
+  Shield,
+  Plus,
+  Download,
+  Edit3,
+  Key,
+  Check,
   Lock,
   Mail,
-  User as UserIcon
-} from 'lucide-react';
-import { StatCard } from '../components/molecules/StatCard';
-import { SearchBar } from '../components/molecules/SearchBar';
-import { Pagination } from '../components/molecules/Pagination';
-import { Drawer } from '../components/molecules/Drawer';
-import { Modal } from '../components/molecules/Modal';
-import { Button } from '../components/atoms/Button';
-import { Badge } from '../components/atoms/Badge';
-import { Input } from '../components/atoms/Input';
-import { Select } from '../components/atoms/Select';
-import { Avatar } from '../components/atoms/Avatar';
-import { useData } from '../context/DataContext';
-import { User, ModuleName, ModulePermission, UserRole } from '../types';
-import { exportToCSV } from '../utils/exportUtils';
+  User as UserIcon,
+} from "lucide-react";
+import { StatCard } from "../components/molecules/StatCard";
+import { SearchBar } from "../components/molecules/SearchBar";
+import { Pagination } from "../components/molecules/Pagination";
+import { Drawer } from "../components/molecules/Drawer";
+import { Modal } from "../components/molecules/Modal";
+import { Button } from "../components/atoms/Button";
+import { Badge } from "../components/atoms/Badge";
+import { Input } from "../components/atoms/Input";
+import { Select } from "../components/atoms/Select";
+import { Avatar } from "../components/atoms/Avatar";
+import { useData } from "../context/DataContext";
+import { User, ModuleName, ModulePermission, UserRole } from "../types";
+import { exportToCSV } from "../utils/exportUtils";
 
 const DEFAULT_MODULES: ModuleName[] = [
-  'Dashboard',
-  'Gestión de clientes',
-  'Convenios de pago',
-  'Reportes de cartera vencida',
-  'Seguimiento de gestores de cobro',
+  "Dashboard",
+  "Gestión de clientes",
+  "Convenios de pago",
+  "Reportes de cartera vencida",
+  "Seguimiento de gestores de cobro",
 ];
 
 export const UsuariosPage: React.FC = () => {
-  const { users, addUser, updateUserPermissions } = useData();
+  const { users, addUser, updateUserPermissions, setUserStatus } = useData();
 
   // Search & Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('Todos');
-  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("Todos");
+  const [statusFilter, setStatusFilter] = useState("Todos");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,33 +53,33 @@ export const UsuariosPage: React.FC = () => {
 
   // Form State for User Creation
   const [userData, setUserData] = useState({
-    name: 'Andrea Morales',
-    username: 'amorales',
-    email: 'andrea.morales@jme.com.gt',
-    role: 'Gestor de Cobro' as UserRole,
-    password: 'password123',
-    status: 'Activo' as const,
+    name: "Andrea Morales",
+    username: "amorales",
+    email: "andrea.morales@jme.com.gt",
+    role: "Gestor de Cobro" as UserRole,
+    password: "password123",
+    status: "Activo" as const,
   });
 
   // Permission Matrix State for Form
   const [permissions, setPermissions] = useState<ModulePermission[]>(
-    DEFAULT_MODULES.map(m => ({
+    DEFAULT_MODULES.map((m) => ({
       module: m,
       view: true,
-      create: m === 'Gestión de clientes' || m === 'Convenios de pago',
-      edit: m === 'Gestión de clientes',
+      create: m === "Gestión de clientes" || m === "Convenios de pago",
+      edit: m === "Gestión de clientes",
       delete: false,
-    }))
+    })),
   );
 
-  const filteredUsers = users.filter(u => {
+  const filteredUsers = users.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = roleFilter === 'Todos' || u.role === roleFilter;
-    const matchesStatus = statusFilter === 'Todos' || u.status === statusFilter;
+    const matchesRole = roleFilter === "Todos" || u.role === roleFilter;
+    const matchesStatus = statusFilter === "Todos" || u.status === statusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -87,50 +87,57 @@ export const UsuariosPage: React.FC = () => {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const handleTogglePermission = (
     module: ModuleName,
-    action: 'view' | 'create' | 'edit' | 'delete'
+    action: "view" | "create" | "edit" | "delete",
   ) => {
-    setPermissions(prev =>
-      prev.map(p => (p.module === module ? { ...p, [action]: !p[action] } : p))
+    setPermissions((prev) =>
+      prev.map((p) =>
+        p.module === module ? { ...p, [action]: !p[action] } : p,
+      ),
     );
   };
 
   const handleToggleAllPermissions = (checked: boolean) => {
-    setPermissions(prev =>
-      prev.map(p => ({
+    setPermissions((prev) =>
+      prev.map((p) => ({
         ...p,
         view: checked,
         create: checked,
         edit: checked,
         delete: checked,
-      }))
+      })),
     );
   };
 
   const areAllPermissionsChecked = permissions.every(
-    p => p.view && p.create && p.edit && p.delete
+    (p) => p.view && p.create && p.edit && p.delete,
   );
 
-  const handleSaveUser = (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingUser) {
-      updateUserPermissions(editingUser.id, permissions);
-      setEditingUser(null);
-    } else {
-      addUser({
-        name: userData.name,
-        username: userData.username,
-        email: userData.email,
-        role: userData.role,
-        status: userData.status,
-        avatar: userData.name.slice(0, 2).toUpperCase(),
-        permissions,
-      });
-      setIsNewUserModalOpen(false);
+    try {
+      if (editingUser) {
+        await updateUserPermissions(editingUser.id, permissions);
+        setEditingUser(null);
+      } else {
+        await addUser({
+          name: userData.name,
+          username: userData.username,
+          email: userData.email,
+          role: userData.role,
+          status: userData.status,
+          avatar: userData.name.slice(0, 2).toUpperCase(),
+          permissions,
+          password: userData.password,
+        });
+        setIsNewUserModalOpen(false);
+      }
+    } catch {
+      /* El error se muestra en el aviso global. */
     }
   };
 
@@ -140,20 +147,27 @@ export const UsuariosPage: React.FC = () => {
       setPermissions(user.permissions);
     } else {
       setPermissions(
-        DEFAULT_MODULES.map(m => ({
+        DEFAULT_MODULES.map((m) => ({
           module: m,
           view: true,
           create: false,
           edit: false,
           delete: false,
-        }))
+        })),
       );
     }
   };
 
   const handleExportCSV = () => {
-    const headers = ['Usuario', 'Nombre', 'Email', 'Rol', 'Estado', 'Último Acceso'];
-    const rows = filteredUsers.map(u => [
+    const headers = [
+      "Usuario",
+      "Nombre",
+      "Email",
+      "Rol",
+      "Estado",
+      "Último Acceso",
+    ];
+    const rows = filteredUsers.map((u) => [
       u.username,
       u.name,
       u.email,
@@ -161,7 +175,7 @@ export const UsuariosPage: React.FC = () => {
       u.status,
       u.lastAccess,
     ]);
-    exportToCSV('JME_Usuarios_Permisos', headers, rows);
+    exportToCSV("JME_Usuarios_Permisos", headers, rows);
   };
 
   return (
@@ -205,7 +219,7 @@ export const UsuariosPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total de usuarios"
-          value="28"
+          value={users.length}
           icon={<Users className="w-5 h-5" />}
           iconColor="blue"
           subtitle="Cuentas registradas"
@@ -213,7 +227,7 @@ export const UsuariosPage: React.FC = () => {
 
         <StatCard
           label="Activos"
-          value="22"
+          value={users.filter((u) => u.status === "Activo").length}
           icon={<UserCheck className="w-5 h-5" />}
           iconColor="emerald"
           subtitle="Sesiones autorizadas"
@@ -221,7 +235,7 @@ export const UsuariosPage: React.FC = () => {
 
         <StatCard
           label="Inactivos"
-          value="6"
+          value={users.filter((u) => u.status === "Inactivo").length}
           icon={<UserX className="w-5 h-5" />}
           iconColor="rose"
           subtitle="Acceso revocado o suspendido"
@@ -229,7 +243,7 @@ export const UsuariosPage: React.FC = () => {
 
         <StatCard
           label="Roles"
-          value="4"
+          value={new Set(users.map((u) => u.role)).size}
           icon={<Shield className="w-5 h-5" />}
           iconColor="purple"
           subtitle="Perfiles jerárquicos de seguridad"
@@ -250,13 +264,13 @@ export const UsuariosPage: React.FC = () => {
           <div className="w-40">
             <Select
               value={roleFilter}
-              onChange={e => setRoleFilter(e.target.value)}
+              onChange={(e) => setRoleFilter(e.target.value)}
               options={[
-                { value: 'Todos', label: 'Rol: Todos' },
-                { value: 'Administrador', label: 'Administrador' },
-                { value: 'Gestor de Cobro', label: 'Gestor de Cobro' },
-                { value: 'Supervisor', label: 'Supervisor' },
-                { value: 'Consultor', label: 'Consultor' },
+                { value: "Todos", label: "Rol: Todos" },
+                { value: "Administrador", label: "Administrador" },
+                { value: "Gestor de Cobro", label: "Gestor de Cobro" },
+                { value: "Supervisor", label: "Supervisor" },
+                { value: "Consultor", label: "Consultor" },
               ]}
             />
           </div>
@@ -264,11 +278,11 @@ export const UsuariosPage: React.FC = () => {
           <div className="w-36">
             <Select
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value)}
               options={[
-                { value: 'Todos', label: 'Estado: Todos' },
-                { value: 'Activo', label: 'Activo' },
-                { value: 'Inactivo', label: 'Inactivo' },
+                { value: "Todos", label: "Estado: Todos" },
+                { value: "Activo", label: "Activo" },
+                { value: "Inactivo", label: "Inactivo" },
               ]}
             />
           </div>
@@ -290,8 +304,11 @@ export const UsuariosPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedUsers.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+              {paginatedUsers.map((u) => (
+                <tr
+                  key={u.id}
+                  className="hover:bg-slate-50/60 transition-colors"
+                >
                   <td className="py-3 px-4 font-mono font-medium text-slate-800">
                     <div className="flex items-center gap-2.5">
                       <Avatar
@@ -305,13 +322,24 @@ export const UsuariosPage: React.FC = () => {
                   <td className="py-3 px-4 font-semibold text-slate-900">
                     {u.name}
                   </td>
-                  <td className="py-3 px-4 text-slate-700">
-                    {u.role}
-                  </td>
+                  <td className="py-3 px-4 text-slate-700">{u.role}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={u.status === 'Activo' ? 'success' : 'danger'}>
-                      {u.status}
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setUserStatus(
+                          u.id,
+                          u.status === "Activo" ? "Inactivo" : "Activo",
+                        )
+                      }
+                      title="Cambiar estado de la cuenta"
+                    >
+                      <Badge
+                        variant={u.status === "Activo" ? "success" : "danger"}
+                      >
+                        {u.status}
+                      </Badge>
+                    </button>
                   </td>
                   <td className="py-3 px-4 font-mono text-slate-500">
                     {u.lastAccess}
@@ -353,11 +381,13 @@ export const UsuariosPage: React.FC = () => {
           setIsNewUserModalOpen(false);
           setEditingUser(null);
         }}
-        title={editingUser ? `Permisos de ${editingUser.name}` : 'Nuevo usuario'}
+        title={
+          editingUser ? `Permisos de ${editingUser.name}` : "Nuevo usuario"
+        }
         subtitle={
           editingUser
-            ? 'Modificación de privilegios de acceso y auditoría'
-            : 'Completa la información para crear un nuevo usuario.'
+            ? "Modificación de privilegios de acceso y auditoría"
+            : "Completa la información para crear un nuevo usuario."
         }
         width="lg"
         footer={
@@ -397,7 +427,9 @@ export const UsuariosPage: React.FC = () => {
                   label="Nombre completo *"
                   required
                   value={userData.name}
-                  onChange={e => setUserData({ ...userData, name: e.target.value })}
+                  onChange={(e) =>
+                    setUserData({ ...userData, name: e.target.value })
+                  }
                   placeholder="Andrea Morales"
                 />
 
@@ -406,29 +438,44 @@ export const UsuariosPage: React.FC = () => {
                     label="Usuario *"
                     required
                     value={userData.username}
-                    onChange={e => setUserData({ ...userData, username: e.target.value })}
+                    onChange={(e) =>
+                      setUserData({ ...userData, username: e.target.value })
+                    }
                     placeholder="amorales"
                   />
                   <Select
                     label="Rol *"
                     value={userData.role}
-                    onChange={e => setUserData({ ...userData, role: e.target.value as any })}
+                    onChange={(e) =>
+                      setUserData({ ...userData, role: e.target.value as any })
+                    }
                     options={[
-                      { value: 'Gestor de Cobro', label: 'Gestor de Cobro' },
-                      { value: 'Administrador', label: 'Administrador' },
-                      { value: 'Supervisor', label: 'Supervisor' },
-                      { value: 'Consultor', label: 'Consultor' },
+                      { value: "Gestor de Cobro", label: "Gestor de Cobro" },
+                      { value: "Administrador", label: "Administrador" },
+                      { value: "Supervisor", label: "Supervisor" },
+                      { value: "Consultor", label: "Consultor" },
                     ]}
                   />
                 </div>
 
                 <Input
+                  label="Correo electrónico *"
+                  type="email"
+                  required
+                  value={userData.email}
+                  onChange={(e) =>
+                    setUserData({ ...userData, email: e.target.value })
+                  }
+                />
+                <Input
                   label="Contraseña *"
                   type="password"
                   required
                   value={userData.password}
-                  onChange={e => setUserData({ ...userData, password: e.target.value })}
-                  helperText="Mínimo 8 caracteres con letras y números"
+                  onChange={(e) =>
+                    setUserData({ ...userData, password: e.target.value })
+                  }
+                  helperText="Mínimo 12 caracteres"
                 />
               </div>
             </div>
@@ -457,7 +504,7 @@ export const UsuariosPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {permissions.map(perm => (
+                  {permissions.map((perm) => (
                     <tr key={perm.module} className="hover:bg-slate-50/50">
                       <td className="py-2.5 px-3 font-medium text-slate-800">
                         {perm.module}
@@ -466,7 +513,9 @@ export const UsuariosPage: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={perm.view}
-                          onChange={() => handleTogglePermission(perm.module, 'view')}
+                          onChange={() =>
+                            handleTogglePermission(perm.module, "view")
+                          }
                           className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </td>
@@ -474,7 +523,9 @@ export const UsuariosPage: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={perm.create}
-                          onChange={() => handleTogglePermission(perm.module, 'create')}
+                          onChange={() =>
+                            handleTogglePermission(perm.module, "create")
+                          }
                           className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </td>
@@ -482,7 +533,9 @@ export const UsuariosPage: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={perm.edit}
-                          onChange={() => handleTogglePermission(perm.module, 'edit')}
+                          onChange={() =>
+                            handleTogglePermission(perm.module, "edit")
+                          }
                           className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </td>
@@ -490,7 +543,9 @@ export const UsuariosPage: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={perm.delete}
-                          onChange={() => handleTogglePermission(perm.module, 'delete')}
+                          onChange={() =>
+                            handleTogglePermission(perm.module, "delete")
+                          }
                           className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </td>
@@ -506,10 +561,13 @@ export const UsuariosPage: React.FC = () => {
                 id="select-all-perm"
                 type="checkbox"
                 checked={areAllPermissionsChecked}
-                onChange={e => handleToggleAllPermissions(e.target.checked)}
+                onChange={(e) => handleToggleAllPermissions(e.target.checked)}
                 className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
-              <label htmlFor="select-all-perm" className="cursor-pointer select-none">
+              <label
+                htmlFor="select-all-perm"
+                className="cursor-pointer select-none"
+              >
                 Seleccionar todos los permisos
               </label>
             </div>

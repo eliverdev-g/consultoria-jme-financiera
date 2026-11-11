@@ -1,357 +1,287 @@
-import React, { useState } from 'react';
-import { 
-  FileDown, 
-  FileSpreadsheet, 
-  BarChart3, 
-  Users, 
-  Coins, 
-  Percent, 
-  TrendingUp, 
-  PieChart as PieIcon,
-  Calendar,
-  Filter
-} from 'lucide-react';
-import { StatCard } from '../components/molecules/StatCard';
-import { Card } from '../components/atoms/Card';
-import { Button } from '../components/atoms/Button';
-import { Currency } from '../components/atoms/Currency';
-import { Select } from '../components/atoms/Select';
-import { 
-  PORTFOLIO_SEGMENTS, 
-  DELINQUENCY_RANGES, 
-  MONTHLY_RECOVERY, 
-  PORTFOLIO_STATUS_DISTRIBUTION 
-} from '../data/mockData';
-import { exportToCSV, printToPDF } from '../utils/exportUtils';
-
-export const ReportesPage: React.FC = () => {
-  const [dateRange, setDateRange] = useState('01/01/2024 - 22/05/2025');
-  const [statusFilter, setStatusFilter] = useState('Todos');
-  const [delinquencyFilter, setDelinquencyFilter] = useState('Todos');
-  const [exportFormat, setExportFormat] = useState('PDF');
-
-  const totalOverdue = 12845620.35;
-  const totalClients = 2458;
-  const totalRecovered = 3215480.75;
-  const totalRate = 25.03;
-
-  const handleExportExcel = () => {
-    const headers = ['Segmento', 'Clientes', 'Saldo Total (Q)', 'Monto Recuperado (Q)', '% Recuperación', 'Tasa de Mora'];
-    const rows = PORTFOLIO_SEGMENTS.map(s => [
-      s.segment,
-      s.clientsCount,
-      s.totalBalance,
-      s.recoveredAmount,
-      `${s.recoveryPercentage}%`,
-      `${s.defaultRate}%`,
-    ]);
-    rows.push([
-      'Total general',
-      totalClients,
-      totalOverdue,
-      totalRecovered,
-      `${totalRate}%`,
-      '7.91%',
-    ]);
-    exportToCSV('JME_Reporte_Cartera_Vencida', headers, rows);
-  };
-
+import React, { useState } from "react";
+import {
+  Users,
+  Coins,
+  Percent,
+  AlertCircle,
+  Download,
+  Printer,
+} from "lucide-react";
+import { useData } from "../context/DataContext";
+import { Card } from "../components/atoms/Card";
+import { StatCard } from "../components/molecules/StatCard";
+import { Select } from "../components/atoms/Select";
+import { Input } from "../components/atoms/Input";
+import { Button } from "../components/atoms/Button";
+import { Currency } from "../components/atoms/Currency";
+import { exportToCSV, printToPDF } from "../utils/exportUtils";
+export const ReportesPage = () => {
+  const { clients, payments } = useData();
+  const [status, setStatus] = useState("Todos");
+  const [range, setRange] = useState("Todos");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const filtered = clients.filter(
+    (c) =>
+      (status === "Todos" || c.status === status) &&
+      (range === "Todos" ||
+        (range === "180+"
+          ? c.daysOverdue > 180
+          : c.daysOverdue >= Number(range.split("-")[0]) &&
+            c.daysOverdue <= Number(range.split("-")[1]))),
+  );
+  const selected = new Set(filtered.map((c) => c.id));
+  const receipts = payments.filter(
+    (p) =>
+      selected.has(p.clientId) &&
+      (!from || p.paidAt.slice(0, 10) >= from) &&
+      (!to || p.paidAt.slice(0, 10) <= to),
+  );
+  const balance = filtered.reduce((s, c) => s + c.overdueBalance, 0);
+  const recovered = receipts.reduce((s, p) => s + p.amount, 0);
+  const rate =
+    balance + recovered ? (100 * recovered) / (balance + recovered) : 0;
+  const segments = [...new Set(filtered.map((c) => c.segment))].map(
+    (segment) => {
+      const list = filtered.filter((c) => c.segment === segment);
+      const ids = new Set(list.map((c) => c.id));
+      return {
+        segment,
+        count: list.length,
+        balance: list.reduce((s, c) => s + c.overdueBalance, 0),
+        recovered: receipts
+          .filter((p) => ids.has(p.clientId))
+          .reduce((s, p) => s + p.amount, 0),
+      };
+    },
+  );
+  const ranges = ["1-30", "31-60", "61-90", "91-120", "121-180", "180+"].map(
+    (label) => ({
+      label,
+      amount: filtered
+        .filter((c) =>
+          label === "180+"
+            ? c.daysOverdue > 180
+            : c.daysOverdue >= Number(label.split("-")[0]) &&
+              c.daysOverdue <= Number(label.split("-")[1]),
+        )
+        .reduce((s, c) => s + c.overdueBalance, 0),
+    }),
+  );
+  const monthly = Object.entries(
+    receipts.reduce(
+      (acc, p) => {
+        const key = p.paidAt.slice(0, 7);
+        acc[key] = (acc[key] || 0) + p.amount;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+  )
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, amount]) => ({ label, amount }));
+  const states = [...new Set(filtered.map((c) => c.status))].map((label) => ({
+    label,
+    amount: filtered
+      .filter((c) => c.status === label)
+      .reduce((s, c) => s + c.overdueBalance, 0),
+  }));
+  const exportCsv = () =>
+    exportToCSV(
+      "JME_Cartera_Vencida",
+      ["Segmento", "Clientes", "Saldo Q", "Recuperado Q"],
+      segments.map((s) => [s.segment, s.count, s.balance, s.recovered]),
+    );
+  const bars = (items: { label: string; amount: number }[], color: string) => (
+    <div className="space-y-4">
+      {items.map((item) => (
+        <div key={item.label}>
+          <div className="flex justify-between text-xs mb-2">
+            <span>{item.label}</span>
+            <Currency amount={item.amount} />
+          </div>
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${color}`}
+              style={{
+                width: `${(100 * item.amount) / Math.max(1, ...items.map((i) => i.amount))}%`,
+              }}
+            />
+          </div>
+        </div>
+      ))}
+      {!items.length && (
+        <p className="text-sm text-slate-500 py-8">
+          No hay pagos en el período seleccionado.
+        </p>
+      )}
+    </div>
+  );
   return (
     <div className="space-y-6">
-      {/* Header matching PDF Page 1 Top */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-wrap justify-between gap-4 items-center">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+            Análisis de cartera
+          </p>
+          <h2 className="text-2xl font-bold text-slate-900">
             Reportes de cartera vencida
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Análisis y estadísticas de la cartera en mora para una gestión eficiente de crédito.
+          <p className="text-sm text-slate-500">
+            Saldos actuales y recuperación registrada para apoyar sus
+            decisiones.
           </p>
         </div>
-
-        <div className="flex items-center gap-2.5">
+        <div className="flex gap-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={printToPDF}
-            leftIcon={<FileDown className="w-4 h-4 text-rose-600" />}
+            leftIcon={<Printer className="w-4 h-4" />}
           >
-            Exportar PDF
+            Imprimir / PDF
           </Button>
-
           <Button
-            variant="primary"
-            size="sm"
-            onClick={handleExportExcel}
-            leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-400" />}
+            onClick={exportCsv}
+            leftIcon={<Download className="w-4 h-4" />}
           >
-            Exportar Excel
+            Exportar CSV
           </Button>
         </div>
       </div>
-
-      {/* Filter Row matching PDF */}
-      <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" /> Rango de fecha
-          </label>
-          <input
-            type="text"
-            value={dateRange}
-            onChange={e => setDateRange(e.target.value)}
-            className="w-full bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-900 px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <Select
-            label="Estado"
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            options={[
-              { value: 'Todos', label: 'Todos' },
-              { value: 'En gestión', label: 'En gestión' },
-              { value: 'Convenio vigente', label: 'Convenio vigente' },
-              { value: 'Demanda judicial', label: 'Demanda judicial' },
-              { value: 'Castigada', label: 'Castigada' },
-            ]}
-          />
-        </div>
-
-        <div>
-          <Select
-            label="Rango de mora (días)"
-            value={delinquencyFilter}
-            onChange={e => setDelinquencyFilter(e.target.value)}
-            options={[
-              { value: 'Todos', label: 'Todos' },
-              { value: '1-30', label: '1 - 30 días' },
-              { value: '31-60', label: '31 - 60 días' },
-              { value: '61-90', label: '61 - 90 días' },
-              { value: '91-120', label: '91 - 120 días' },
-              { value: '121-180', label: '121 - 180 días' },
-              { value: '180+', label: '180+ días' },
-            ]}
-          />
-        </div>
-
-        <div>
-          <Select
-            label="Formato de exportación"
-            value={exportFormat}
-            onChange={e => setExportFormat(e.target.value)}
-            options={[
-              { value: 'PDF', label: 'Documento PDF (.pdf)' },
-              { value: 'Excel', label: 'Hoja de Cálculo Excel (.xlsx)' },
-              { value: 'CSV', label: 'Valores por Coma (.csv)' },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* Top 4 Primary KPIs matching PDF */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Cartera vencida total"
-          value={<Currency amount={totalOverdue} />}
-          icon={<BarChart3 className="w-5 h-5" />}
-          iconColor="blue"
-          subtitle="Saldo global en mora auditado"
+      <Card className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Input
+          label="Pagos desde"
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
         />
-
+        <Input
+          label="Pagos hasta"
+          type="date"
+          value={to}
+          min={from}
+          onChange={(e) => setTo(e.target.value)}
+        />
+        <Select
+          label="Estado del cliente"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          options={[
+            "Todos",
+            "En gestión",
+            "Convenio vigente",
+            "Demanda judicial",
+            "Castigada",
+            "Al día",
+          ].map((value) => ({ value, label: value }))}
+        />
+        <Select
+          label="Días de mora"
+          value={range}
+          onChange={(e) => setRange(e.target.value)}
+          options={["Todos", ...ranges.map((r) => r.label)].map((value) => ({
+            value,
+            label: value,
+          }))}
+        />
+        <p className="sm:col-span-2 lg:col-span-4 text-xs text-slate-500">
+          Las fechas filtran los pagos. Los saldos corresponden al estado actual
+          de la cartera.
+        </p>
+      </Card>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Saldo pendiente"
+          value={<Currency amount={balance} />}
+          icon={<AlertCircle />}
+          iconColor="blue"
+        />
         <StatCard
           label="Clientes en mora"
-          value={totalClients.toLocaleString('es-GT')}
-          icon={<Users className="w-5 h-5" />}
-          iconColor="emerald"
-          subtitle="Padrón crediticio atrasado"
-        />
-
-        <StatCard
-          label="Monto recuperado (Q)"
-          value={<Currency amount={totalRecovered} />}
-          icon={<Coins className="w-5 h-5" />}
+          value={
+            filtered.filter((c) => c.daysOverdue > 0 && c.overdueBalance > 0)
+              .length
+          }
+          icon={<Users />}
           iconColor="amber"
-          subtitle="Cobranza efectiva ingresada"
         />
-
         <StatCard
-          label="% Recuperación"
-          value={`${totalRate}%`}
-          icon={<Percent className="w-5 h-5" />}
+          label="Monto recuperado"
+          value={<Currency amount={recovered} />}
+          icon={<Coins />}
+          iconColor="emerald"
+        />
+        <StatCard
+          label="Recuperación"
+          value={`${rate.toFixed(2)}%`}
+          icon={<Percent />}
           iconColor="purple"
-          subtitle="Efectividad sobre saldo mora"
+          subtitle="Pagos / (saldo actual + pagos del período)"
         />
       </div>
-
-      {/* Visual Analytics Grid matching PDF Page 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart 1: Cartera vencida por rangos de mora */}
-        <Card padding="md" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Cartera vencida por rangos de mora
-            </h3>
-            <span className="text-[10px] text-slate-400 font-mono">Q en millones</span>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            {DELINQUENCY_RANGES.map(item => {
-              const maxAmount = 5000000;
-              const pct = (item.amount / maxAmount) * 100;
-              return (
-                <div key={item.range} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-medium text-slate-700">{item.range}</span>
-                    <span className="font-mono font-bold text-slate-900">
-                      <Currency amount={item.amount} />
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
-                    <div
-                      className="bg-[#0F1E36] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <Card>
+          <h3 className="font-semibold text-sm mb-6">
+            Cartera por rangos de mora
+          </h3>
+          {bars(ranges, "bg-blue-600")}
         </Card>
-
-        {/* Chart 2: Recuperación por mes */}
-        <Card padding="md" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Recuperación por mes
-            </h3>
-            <span className="text-[10px] text-slate-400 font-mono">Dic 2024 - May 2025</span>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            {MONTHLY_RECOVERY.map(item => {
-              const maxVal = 700000;
-              const pct = (item.amount / maxVal) * 100;
-              return (
-                <div key={item.month} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-medium text-slate-700">{item.month}</span>
-                    <span className="font-mono font-bold text-blue-700">
-                      <Currency amount={item.amount} />
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
-                    <div
-                      className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Card>
+          <h3 className="font-semibold text-sm mb-6">Recuperación por mes</h3>
+          {bars(monthly, "bg-emerald-500")}
         </Card>
-
-        {/* Chart 3: Cartera vencida por estado matching PDF */}
-        <Card padding="md" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Cartera vencida por estado
-            </h3>
-            <PieIcon className="w-4 h-4 text-slate-400" />
-          </div>
-
-          <div className="space-y-3 pt-1">
-            {PORTFOLIO_STATUS_DISTRIBUTION.map(item => (
-              <div key={item.status} className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="font-medium text-slate-700">{item.status}</span>
-                  </div>
-                  <span className="font-mono font-bold text-slate-900">{item.percentage}%</span>
-                </div>
-                <div className="text-right text-[11px] font-mono text-slate-500">
-                  <Currency amount={item.amount} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex justify-between text-xs font-bold text-slate-900">
-            <span>Total:</span>
-            <Currency amount={totalOverdue} />
-          </div>
+        <Card>
+          <h3 className="font-semibold text-sm mb-6">Cartera por estado</h3>
+          {bars(states, "bg-indigo-500")}
         </Card>
       </div>
-
-      {/* Table: Resumen por segmento matching PDF Page 1 */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-            Resumen por segmento
-          </h3>
-          <span className="text-xs text-slate-400">Desglose de cartera y efectividad de recupero</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold uppercase tracking-wider">
-                <th className="py-3 px-5">Segmento</th>
-                <th className="py-3 px-4 text-center">Clientes</th>
-                <th className="py-3 px-4 text-right">Saldo (Q)</th>
-                <th className="py-3 px-4 text-right">Recuperación (Q)</th>
-                <th className="py-3 px-4 text-center">% Recup.</th>
-                <th className="py-3 px-4 text-center">Tasa mora</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {PORTFOLIO_SEGMENTS.map(seg => (
-                <tr key={seg.segment} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3.5 px-5 font-semibold text-slate-900">
-                    {seg.segment}
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-mono text-slate-700">
-                    {seg.clientsCount.toLocaleString('es-GT')}
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
-                    <Currency amount={seg.totalBalance} />
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono text-emerald-700 font-semibold">
-                    <Currency amount={seg.recoveredAmount} />
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-mono text-slate-700">
-                    {seg.recoveryPercentage.toFixed(2)}%
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-mono font-medium text-rose-600">
-                    {seg.defaultRate.toFixed(2)}%
-                  </td>
-                </tr>
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-auto">
+        <h3 className="font-semibold p-5">Resumen por segmento</h3>
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              {[
+                "Segmento",
+                "Clientes",
+                "Saldo (Q)",
+                "Recuperado (Q)",
+                "Recuperación",
+              ].map((h) => (
+                <th key={h} className="p-4 font-medium">
+                  {h}
+                </th>
               ))}
-              {/* Grand Total row matching PDF */}
-              <tr className="bg-slate-50/90 font-bold border-t-2 border-slate-200 text-slate-900">
-                <td className="py-3.5 px-5">Total general</td>
-                <td className="py-3.5 px-4 text-center font-mono">
-                  {totalClients.toLocaleString('es-GT')}
+            </tr>
+          </thead>
+          <tbody>
+            {segments.map((s) => (
+              <tr key={s.segment} className="border-t border-slate-100">
+                <td className="p-4 font-medium">{s.segment}</td>
+                <td className="p-4">{s.count}</td>
+                <td className="p-4">
+                  <Currency amount={s.balance} />
                 </td>
-                <td className="py-3.5 px-4 text-right font-mono text-slate-900">
-                  <Currency amount={totalOverdue} />
+                <td className="p-4 text-emerald-700">
+                  <Currency amount={s.recovered} />
                 </td>
-                <td className="py-3.5 px-4 text-right font-mono text-emerald-700">
-                  <Currency amount={totalRecovered} />
-                </td>
-                <td className="py-3.5 px-4 text-center font-mono">
-                  {totalRate.toFixed(2)}%
-                </td>
-                <td className="py-3.5 px-4 text-center font-mono text-rose-700">
-                  7.91%
+                <td className="p-4">
+                  {(s.balance + s.recovered
+                    ? (100 * s.recovered) / (s.balance + s.recovered)
+                    : 0
+                  ).toFixed(2)}
+                  %
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
+            ))}
+            {!segments.length && (
+              <tr>
+                <td className="p-8 text-center text-slate-500" colSpan={5}>
+                  No hay clientes que coincidan con los filtros.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

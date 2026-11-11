@@ -1,82 +1,82 @@
-import React, { useState } from 'react';
-import { 
-  UserCheck, 
-  PhoneCall, 
-  Handshake, 
-  Clock, 
-  Plus, 
-  Download, 
-  Eye, 
-  Phone, 
-  MessageSquare, 
-  Mail, 
+import React, { useState } from "react";
+import {
+  UserCheck,
+  PhoneCall,
+  Handshake,
+  Clock,
+  Plus,
+  Download,
+  Eye,
+  Phone,
+  MessageSquare,
+  Mail,
   Calendar,
   CheckCircle2,
   AlertCircle,
   FileText,
   User,
   MapPin,
-  TrendingUp
-} from 'lucide-react';
-import { StatCard } from '../components/molecules/StatCard';
-import { SearchBar } from '../components/molecules/SearchBar';
-import { Pagination } from '../components/molecules/Pagination';
-import { Drawer } from '../components/molecules/Drawer';
-import { Modal } from '../components/molecules/Modal';
-import { Button } from '../components/atoms/Button';
-import { Badge, BadgeVariant } from '../components/atoms/Badge';
-import { Currency } from '../components/atoms/Currency';
-import { Input } from '../components/atoms/Input';
-import { Select } from '../components/atoms/Select';
-import { useData } from '../context/DataContext';
-import { CollectorActivity } from '../types';
-import { exportToCSV } from '../utils/exportUtils';
+  TrendingUp,
+} from "lucide-react";
+import { StatCard } from "../components/molecules/StatCard";
+import { SearchBar } from "../components/molecules/SearchBar";
+import { Pagination } from "../components/molecules/Pagination";
+import { Drawer } from "../components/molecules/Drawer";
+import { Modal } from "../components/molecules/Modal";
+import { Button } from "../components/atoms/Button";
+import { Badge, BadgeVariant } from "../components/atoms/Badge";
+import { Currency } from "../components/atoms/Currency";
+import { Input } from "../components/atoms/Input";
+import { Select } from "../components/atoms/Select";
+import { useData } from "../context/DataContext";
+import { CollectorActivity } from "../types";
+import { exportToCSV } from "../utils/exportUtils";
 
 export const GestoresPage: React.FC = () => {
   const { activities, clients, addActivity } = useData();
 
   // Search & Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [managerFilter, setManagerFilter] = useState('Todos');
-  const [typeFilter, setTypeFilter] = useState('Todos');
-  const [dateFilter, setDateFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [managerFilter, setManagerFilter] = useState("Todos");
+  const [typeFilter, setTypeFilter] = useState("Todos");
+  const [dateFilter, setDateFilter] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
   // Drawer & Modal States
-  const [selectedActivity, setSelectedActivity] = useState<CollectorActivity | null>(
-    activities[0] || null
-  );
+  const [selectedActivity, setSelectedActivity] =
+    useState<CollectorActivity | null>(activities[0] || null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isNewActivityModalOpen, setIsNewActivityModalOpen] = useState(false);
 
   // New Activity Form State
   const [formData, setFormData] = useState({
-    collectorName: 'María García',
-    clientName: 'Juan Carlos Pérez',
-    clientCode: 'CLI-000210',
-    debtAmount: '5040.00',
-    type: 'Llamada telefónica' as const,
-    result: 'Promesa de pago' as const,
-    notes: 'Se acordó depósito bancario en 48 horas.',
-    nextActionDate: '23/05/2025',
-    nextActionTime: '10:00',
-    nextActionNote: 'Llamada de confirmación de pago',
-    amountPromised: '2000.00',
+    collectorName: "María García",
+    clientName: "Juan Carlos Pérez",
+    clientCode: "CLI-000210",
+    debtAmount: "5040.00",
+    type: "Llamada telefónica" as const,
+    result: "Promesa de pago" as const,
+    notes: "Se acordó depósito bancario en 48 horas.",
+    nextActionDate: "23/05/2025",
+    nextActionTime: "10:00",
+    nextActionNote: "Llamada de confirmación de pago",
+    amountPromised: "2000.00",
   });
 
   // Filter activities
-  const filteredActivities = activities.filter(act => {
+  const filteredActivities = activities.filter((act) => {
     const matchesSearch =
       act.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       act.collectorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       act.refCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       act.notes.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesManager = managerFilter === 'Todos' || act.collectorName === managerFilter;
-    const matchesType = typeFilter === 'Todos' || act.type === typeFilter;
+    const matchesManager =
+      managerFilter === "Todos" || act.collectorName === managerFilter;
+    const matchesType = typeFilter === "Todos" || act.type === typeFilter;
     const matchesDate = !dateFilter || act.date.includes(dateFilter);
 
     return matchesSearch && matchesManager && matchesType && matchesDate;
@@ -85,68 +85,90 @@ export const GestoresPage: React.FC = () => {
   const totalPages = Math.ceil(filteredActivities.length / itemsPerPage) || 1;
   const paginatedActivities = filteredActivities.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
-  const getResultBadge = (result: CollectorActivity['result']): BadgeVariant => {
+  const getResultBadge = (
+    result: CollectorActivity["result"],
+  ): BadgeVariant => {
     switch (result) {
-      case 'Promesa de pago':
-        return 'success';
-      case 'Convenio acordado':
-        return 'cyan';
-      case 'Contacto sin acuerdo':
-        return 'warning';
-      case 'No contesta':
-        return 'danger';
-      case 'Número equivocado':
-        return 'neutral';
+      case "Promesa de pago":
+        return "success";
+      case "Convenio acordado":
+        return "cyan";
+      case "Contacto sin acuerdo":
+        return "warning";
+      case "No contesta":
+        return "danger";
+      case "Número equivocado":
+        return "neutral";
       default:
-        return 'neutral';
+        return "neutral";
     }
   };
 
-  const getChannelIcon = (type: CollectorActivity['type']) => {
+  const getChannelIcon = (type: CollectorActivity["type"]) => {
     switch (type) {
-      case 'Llamada telefónica':
+      case "Llamada telefónica":
         return <Phone className="w-3.5 h-3.5 text-blue-600" />;
-      case 'Mensaje WhatsApp':
+      case "Mensaje WhatsApp":
         return <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />;
-      case 'Visita de campo':
+      case "Visita de campo":
         return <MapPin className="w-3.5 h-3.5 text-purple-600" />;
-      case 'Correo electrónico':
+      case "Correo electrónico":
         return <Mail className="w-3.5 h-3.5 text-amber-600" />;
     }
   };
 
-  const handleCreateActivity = (e: React.FormEvent) => {
+  const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
-    const created = addActivity({
-      date: new Date().toLocaleDateString('es-GT'),
-      time: new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }),
-      collectorId: 'u-1',
-      collectorName: formData.collectorName,
-      clientId: 'c-manual',
-      clientName: formData.clientName,
-      clientCode: formData.clientCode,
-      debtAmount: parseFloat(formData.debtAmount) || 5000,
-      type: formData.type,
-      result: formData.result,
-      notes: formData.notes,
-      nextActionDate: formData.nextActionDate,
-      nextActionTime: formData.nextActionTime,
-      nextActionNote: formData.nextActionNote,
-      status: 'Pendiente',
-      amountPromised: formData.amountPromised ? parseFloat(formData.amountPromised) : undefined,
-    });
+    try {
+      const created = await addActivity({
+        date: new Date().toLocaleDateString("es-GT"),
+        time: new Date().toLocaleTimeString("es-GT", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        collectorId: "u-1",
+        collectorName: formData.collectorName,
+        clientId: clients.find((c) => c.name === formData.clientName)?.id || "",
+        clientName: formData.clientName,
+        clientCode: formData.clientCode,
+        debtAmount: parseFloat(formData.debtAmount) || 5000,
+        type: formData.type,
+        result: formData.result,
+        notes: formData.notes,
+        nextActionDate: formData.nextActionDate,
+        nextActionTime: formData.nextActionTime,
+        nextActionNote: formData.nextActionNote,
+        status: "Pendiente",
+        amountPromised: formData.amountPromised
+          ? parseFloat(formData.amountPromised)
+          : undefined,
+      });
 
-    setIsNewActivityModalOpen(false);
-    setSelectedActivity(created);
-    setIsDrawerOpen(true);
+      setIsNewActivityModalOpen(false);
+      setSelectedActivity(created);
+      setIsDrawerOpen(true);
+    } catch {
+      /* El error se muestra en el aviso global. */
+    }
   };
 
   const handleExportCSV = () => {
-    const headers = ['Ref', 'Fecha', 'Hora', 'Gestor', 'Cliente', 'Deuda (Q)', 'Tipo', 'Resultado', 'Próxima Acción', 'Estado'];
-    const rows = filteredActivities.map(act => [
+    const headers = [
+      "Ref",
+      "Fecha",
+      "Hora",
+      "Gestor",
+      "Cliente",
+      "Deuda (Q)",
+      "Tipo",
+      "Resultado",
+      "Próxima Acción",
+      "Estado",
+    ];
+    const rows = filteredActivities.map((act) => [
       act.refCode,
       act.date,
       act.time,
@@ -158,7 +180,7 @@ export const GestoresPage: React.FC = () => {
       `${act.nextActionDate} - ${act.nextActionNote}`,
       act.status,
     ]);
-    exportToCSV('JME_Seguimiento_Gestores', headers, rows);
+    exportToCSV("JME_Seguimiento_Gestores", headers, rows);
   };
 
   return (
@@ -170,7 +192,8 @@ export const GestoresPage: React.FC = () => {
             Seguimiento de gestores de cobro
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Registra y monitorea llamadas, visitas, mensajes y resultados de cada gestión realizada.
+            Registra y monitorea llamadas, visitas, mensajes y resultados de
+            cada gestión realizada.
           </p>
         </div>
 
@@ -199,7 +222,7 @@ export const GestoresPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Gestores hoy"
-          value="24"
+          value={activities.length}
           icon={<UserCheck className="w-5 h-5" />}
           iconColor="blue"
           subtitle="Personal de cobranza activo"
@@ -207,29 +230,33 @@ export const GestoresPage: React.FC = () => {
 
         <StatCard
           label="Contactos efectivos"
-          value="16"
+          value={
+            activities.filter(
+              (a) =>
+                a.result !== "No contesta" && a.result !== "Número equivocado",
+            ).length
+          }
           icon={<PhoneCall className="w-5 h-5" />}
           iconColor="emerald"
           subtitle="Gestiones con respuesta directa"
-          trend={{ value: '18% vs ayer', isPositive: true }}
         />
 
         <StatCard
           label="Promesas de pago"
-          value="7"
+          value={
+            activities.filter((a) => a.result === "Promesa de pago").length
+          }
           icon={<Handshake className="w-5 h-5" />}
           iconColor="amber"
           subtitle="Compromisos en fecha acordada"
-          trend={{ value: '45% efectivas', isPositive: true }}
         />
 
         <StatCard
           label="Casos pendientes"
-          value="23"
+          value={activities.filter((a) => a.status !== "Completada").length}
           icon={<Clock className="w-5 h-5" />}
           iconColor="purple"
           subtitle="Gestiones de seguimiento programadas"
-          trend={{ value: '8 hoy', isPositive: false }}
         />
       </div>
 
@@ -247,12 +274,12 @@ export const GestoresPage: React.FC = () => {
           <div className="w-36">
             <Select
               value={managerFilter}
-              onChange={e => setManagerFilter(e.target.value)}
+              onChange={(e) => setManagerFilter(e.target.value)}
               options={[
-                { value: 'Todos', label: 'Gestor: Todos' },
-                { value: 'María García', label: 'María García' },
-                { value: 'Juan López', label: 'Juan López' },
-                { value: 'Rodrigo Muñoz', label: 'Rodrigo Muñoz' },
+                { value: "Todos", label: "Gestor: Todos" },
+                { value: "María García", label: "María García" },
+                { value: "Juan López", label: "Juan López" },
+                { value: "Rodrigo Muñoz", label: "Rodrigo Muñoz" },
               ]}
             />
           </div>
@@ -260,23 +287,23 @@ export const GestoresPage: React.FC = () => {
           <div className="w-40">
             <Select
               value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
+              onChange={(e) => setTypeFilter(e.target.value)}
               options={[
-                { value: 'Todos', label: 'Tipo: Todos' },
-                { value: 'Llamada telefónica', label: 'Llamada telefónica' },
-                { value: 'Mensaje WhatsApp', label: 'Mensaje WhatsApp' },
-                { value: 'Visita de campo', label: 'Visita de campo' },
-                { value: 'Correo electrónico', label: 'Correo electrónico' },
+                { value: "Todos", label: "Tipo: Todos" },
+                { value: "Llamada telefónica", label: "Llamada telefónica" },
+                { value: "Mensaje WhatsApp", label: "Mensaje WhatsApp" },
+                { value: "Visita de campo", label: "Visita de campo" },
+                { value: "Correo electrónico", label: "Correo electrónico" },
               ]}
             />
           </div>
 
           <button
             onClick={() => {
-              setSearchTerm('');
-              setManagerFilter('Todos');
-              setTypeFilter('Todos');
-              setDateFilter('');
+              setSearchTerm("");
+              setManagerFilter("Todos");
+              setTypeFilter("Todos");
+              setDateFilter("");
             }}
             className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
           >
@@ -309,7 +336,7 @@ export const GestoresPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedActivities.map(act => (
+                paginatedActivities.map((act) => (
                   <tr
                     key={act.id}
                     onClick={() => {
@@ -320,7 +347,9 @@ export const GestoresPage: React.FC = () => {
                   >
                     <td className="py-3 px-4 font-mono text-slate-600">
                       <div>{act.date}</div>
-                      <div className="text-[10px] text-slate-400">{act.time}</div>
+                      <div className="text-[10px] text-slate-400">
+                        {act.time}
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-semibold text-slate-800">
                       {act.collectorName}
@@ -329,7 +358,9 @@ export const GestoresPage: React.FC = () => {
                       <div className="font-semibold text-slate-900 group-hover:text-blue-700">
                         {act.clientName}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-mono">{act.clientCode}</div>
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        {act.clientCode}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5 text-slate-700">
@@ -348,19 +379,25 @@ export const GestoresPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-mono text-slate-800">{act.nextActionDate} {act.nextActionTime || ''}</div>
+                      <div className="font-mono text-slate-800">
+                        {act.nextActionDate} {act.nextActionTime || ""}
+                      </div>
                       <div className="text-[11px] text-slate-500 truncate max-w-xs">
                         {act.nextActionNote}
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant={act.status === 'Completada' ? 'success' : 'warning'}>
+                      <Badge
+                        variant={
+                          act.status === "Completada" ? "success" : "warning"
+                        }
+                      >
                         {act.status}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <button
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           setSelectedActivity(act);
                           setIsDrawerOpen(true);
@@ -405,7 +442,9 @@ export const GestoresPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  alert(`Confirmando reprogramación de próxima acción para ${selectedActivity.clientName}`);
+                  alert(
+                    `Confirmando reprogramación de próxima acción para ${selectedActivity.clientName}`,
+                  );
                 }}
                 leftIcon={<Calendar className="w-3.5 h-3.5" />}
               >
@@ -429,13 +468,19 @@ export const GestoresPage: React.FC = () => {
                   {selectedActivity.clientName.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900">{selectedActivity.clientName}</h4>
-                  <span className="text-xs text-slate-500 font-mono">{selectedActivity.refCode}</span>
+                  <h4 className="text-sm font-bold text-slate-900">
+                    {selectedActivity.clientName}
+                  </h4>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {selectedActivity.refCode}
+                  </span>
                 </div>
               </div>
 
               <div className="text-right">
-                <span className="text-[11px] text-slate-400 block">Deuda total:</span>
+                <span className="text-[11px] text-slate-400 block">
+                  Deuda total:
+                </span>
                 <span className="text-base font-bold text-slate-900 font-mono">
                   <Currency amount={selectedActivity.debtAmount} />
                 </span>
@@ -445,23 +490,39 @@ export const GestoresPage: React.FC = () => {
             {/* Quick summary grid matching PDF */}
             <div className="grid grid-cols-2 gap-3 text-xs p-3.5 rounded-xl border border-slate-200 bg-slate-50/60">
               <div>
-                <span className="text-slate-400 block text-[11px]">Analista asignado:</span>
-                <strong className="text-slate-800">{selectedActivity.collectorName}</strong>
+                <span className="text-slate-400 block text-[11px]">
+                  Analista asignado:
+                </span>
+                <strong className="text-slate-800">
+                  {selectedActivity.collectorName}
+                </strong>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px]">Última gestión:</span>
-                <span className="text-slate-800 font-mono font-semibold">{selectedActivity.date} {selectedActivity.time}</span>
+                <span className="text-slate-400 block text-[11px]">
+                  Última gestión:
+                </span>
+                <span className="text-slate-800 font-mono font-semibold">
+                  {selectedActivity.date} {selectedActivity.time}
+                </span>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px]">Canal preferido:</span>
-                <span className="text-slate-800 font-medium">{selectedActivity.type}</span>
+                <span className="text-slate-400 block text-[11px]">
+                  Canal preferido:
+                </span>
+                <span className="text-slate-800 font-medium">
+                  {selectedActivity.type}
+                </span>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px]">Días de mora:</span>
-                <span className="text-rose-600 font-mono font-bold">45 días</span>
+                <span className="text-slate-400 block text-[11px]">
+                  Días de mora:
+                </span>
+                <span className="text-rose-600 font-mono font-bold">
+                  45 días
+                </span>
               </div>
             </div>
 
@@ -477,31 +538,51 @@ export const GestoresPage: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                {selectedActivity.history && selectedActivity.history.length > 0 ? (
+                {selectedActivity.history &&
+                selectedActivity.history.length > 0 ? (
                   selectedActivity.history.map((hist, idx) => (
-                    <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-1 text-xs">
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-1 text-xs"
+                    >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-900 flex items-center gap-1.5">
                           <Phone className="w-3.5 h-3.5 text-blue-600" />
                           {hist.channel}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">{hist.date}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {hist.date}
+                        </span>
                       </div>
-                      <p className="text-slate-600 leading-relaxed">{hist.summary}</p>
+                      <p className="text-slate-600 leading-relaxed">
+                        {hist.summary}
+                      </p>
                       <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-100">
-                        Gestor: <span className="text-slate-700 font-medium">{hist.agent}</span>
+                        Gestor:{" "}
+                        <span className="text-slate-700 font-medium">
+                          {hist.agent}
+                        </span>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="p-3 rounded-xl border border-slate-200 bg-white text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">{selectedActivity.type}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{selectedActivity.date} {selectedActivity.time}</span>
+                      <span className="font-bold text-slate-900">
+                        {selectedActivity.type}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {selectedActivity.date} {selectedActivity.time}
+                      </span>
                     </div>
-                    <p className="text-slate-600 leading-relaxed">{selectedActivity.notes}</p>
+                    <p className="text-slate-600 leading-relaxed">
+                      {selectedActivity.notes}
+                    </p>
                     <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-100">
-                      Gestor: <span className="text-slate-700 font-medium">{selectedActivity.collectorName}</span>
+                      Gestor:{" "}
+                      <span className="text-slate-700 font-medium">
+                        {selectedActivity.collectorName}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -515,7 +596,8 @@ export const GestoresPage: React.FC = () => {
                   <Calendar className="w-4 h-4 text-blue-600" /> Próxima acción
                 </span>
                 <span className="text-xs font-bold text-blue-800 font-mono">
-                  {selectedActivity.nextActionDate} {selectedActivity.nextActionTime || '10:00'}
+                  {selectedActivity.nextActionDate}{" "}
+                  {selectedActivity.nextActionTime || "10:00"}
                 </span>
               </div>
               <p className="text-xs text-blue-950 font-medium">
@@ -543,18 +625,18 @@ export const GestoresPage: React.FC = () => {
               <select
                 required
                 value={formData.clientName}
-                onChange={e => {
-                  const c = clients.find(cl => cl.name === e.target.value);
+                onChange={(e) => {
+                  const c = clients.find((cl) => cl.name === e.target.value);
                   setFormData({
                     ...formData,
                     clientName: e.target.value,
-                    clientCode: c?.code || 'CLI-000000',
-                    debtAmount: c ? c.overdueBalance.toString() : '5000',
+                    clientCode: c?.code || "CLI-000000",
+                    debtAmount: c ? c.overdueBalance.toString() : "5000",
                   });
                 }}
                 className="w-full bg-white border border-slate-300 rounded-lg text-sm text-slate-900 px-3 py-2"
               >
-                {clients.map(c => (
+                {clients.map((c) => (
                   <option key={c.id} value={c.name}>
                     {c.name} ({c.code})
                   </option>
@@ -565,11 +647,13 @@ export const GestoresPage: React.FC = () => {
             <Select
               label="Gestor responsable"
               value={formData.collectorName}
-              onChange={e => setFormData({ ...formData, collectorName: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, collectorName: e.target.value })
+              }
               options={[
-                { value: 'María García', label: 'María García' },
-                { value: 'Juan López', label: 'Juan López' },
-                { value: 'Rodrigo Muñoz', label: 'Rodrigo Muñoz' },
+                { value: "María García", label: "María García" },
+                { value: "Juan López", label: "Juan López" },
+                { value: "Rodrigo Muñoz", label: "Rodrigo Muñoz" },
               ]}
             />
           </div>
@@ -578,36 +662,45 @@ export const GestoresPage: React.FC = () => {
             <Select
               label="Tipo / Canal"
               value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value as any })
+              }
               options={[
-                { value: 'Llamada telefónica', label: 'Llamada telefónica' },
-                { value: 'Mensaje WhatsApp', label: 'Mensaje WhatsApp' },
-                { value: 'Visita de campo', label: 'Visita de campo' },
-                { value: 'Correo electrónico', label: 'Correo electrónico' },
+                { value: "Llamada telefónica", label: "Llamada telefónica" },
+                { value: "Mensaje WhatsApp", label: "Mensaje WhatsApp" },
+                { value: "Visita de campo", label: "Visita de campo" },
+                { value: "Correo electrónico", label: "Correo electrónico" },
               ]}
             />
 
             <Select
               label="Resultado del contacto"
               value={formData.result}
-              onChange={e => setFormData({ ...formData, result: e.target.value as any })}
+              onChange={(e) =>
+                setFormData({ ...formData, result: e.target.value as any })
+              }
               options={[
-                { value: 'Promesa de pago', label: 'Promesa de pago' },
-                { value: 'Contacto sin acuerdo', label: 'Contacto sin acuerdo' },
-                { value: 'No contesta', label: 'No contesta' },
-                { value: 'Convenio acordado', label: 'Convenio acordado' },
-                { value: 'Número equivocado', label: 'Número equivocado' },
+                { value: "Promesa de pago", label: "Promesa de pago" },
+                {
+                  value: "Contacto sin acuerdo",
+                  label: "Contacto sin acuerdo",
+                },
+                { value: "No contesta", label: "No contesta" },
+                { value: "Convenio acordado", label: "Convenio acordado" },
+                { value: "Número equivocado", label: "Número equivocado" },
               ]}
             />
           </div>
 
-          {formData.result === 'Promesa de pago' && (
+          {formData.result === "Promesa de pago" && (
             <Input
               label="Monto prometido de pago (Q)"
               type="number"
               step="0.01"
               value={formData.amountPromised}
-              onChange={e => setFormData({ ...formData, amountPromised: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, amountPromised: e.target.value })
+              }
               placeholder="2000.00"
             />
           )}
@@ -620,7 +713,9 @@ export const GestoresPage: React.FC = () => {
               required
               rows={3}
               value={formData.notes}
-              onChange={e => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F1E36]/20"
             />
           </div>
@@ -629,12 +724,16 @@ export const GestoresPage: React.FC = () => {
             <Input
               label="Fecha próxima acción"
               value={formData.nextActionDate}
-              onChange={e => setFormData({ ...formData, nextActionDate: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, nextActionDate: e.target.value })
+              }
             />
             <Input
               label="Objetivo próximo"
               value={formData.nextActionNote}
-              onChange={e => setFormData({ ...formData, nextActionNote: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, nextActionNote: e.target.value })
+              }
             />
           </div>
 

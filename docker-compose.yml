@@ -1,0 +1,18 @@
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: jme
+      MARIADB_USER: jme
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Configure DB_PASSWORD en .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Configure DB_ROOT_PASSWORD en .env}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - jme_mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+volumes:
+  jme_mariadb:

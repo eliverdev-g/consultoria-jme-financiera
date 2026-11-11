@@ -1,80 +1,82 @@
-import React, { useState } from 'react';
-import { 
-  FileText, 
-  Coins, 
-  CalendarClock, 
-  Percent, 
-  Plus, 
-  Download, 
-  Eye, 
-  CheckCircle2, 
-  Clock, 
+import React, { useState } from "react";
+import {
+  FileText,
+  Coins,
+  CalendarClock,
+  Percent,
+  Plus,
+  Download,
+  Eye,
+  CheckCircle2,
+  Clock,
   AlertCircle,
   Building,
   User,
   Calendar,
   CreditCard,
-  Printer
-} from 'lucide-react';
-import { StatCard } from '../components/molecules/StatCard';
-import { SearchBar } from '../components/molecules/SearchBar';
-import { Pagination } from '../components/molecules/Pagination';
-import { Drawer } from '../components/molecules/Drawer';
-import { Modal } from '../components/molecules/Modal';
-import { Button } from '../components/atoms/Button';
-import { Badge, BadgeVariant } from '../components/atoms/Badge';
-import { Currency } from '../components/atoms/Currency';
-import { Input } from '../components/atoms/Input';
-import { Select } from '../components/atoms/Select';
-import { useData } from '../context/DataContext';
-import { PaymentAgreement } from '../types';
-import { exportToCSV, printToPDF } from '../utils/exportUtils';
+  Printer,
+} from "lucide-react";
+import { StatCard } from "../components/molecules/StatCard";
+import { SearchBar } from "../components/molecules/SearchBar";
+import { Pagination } from "../components/molecules/Pagination";
+import { Drawer } from "../components/molecules/Drawer";
+import { Modal } from "../components/molecules/Modal";
+import { Button } from "../components/atoms/Button";
+import { Badge, BadgeVariant } from "../components/atoms/Badge";
+import { Currency } from "../components/atoms/Currency";
+import { Input } from "../components/atoms/Input";
+import { Select } from "../components/atoms/Select";
+import { useData } from "../context/DataContext";
+import { PaymentAgreement } from "../types";
+import { exportToCSV, printToPDF } from "../utils/exportUtils";
 
 export const ConveniosPage: React.FC = () => {
   const { agreements, clients, addAgreement } = useData();
 
   // Search & Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Todos');
-  const [managerFilter, setManagerFilter] = useState('Todos');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [managerFilter, setManagerFilter] = useState("Todos");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
   // Drawer & Modal States
-  const [selectedAgreement, setSelectedAgreement] = useState<PaymentAgreement | null>(
-    agreements[0] || null
-  );
+  const [selectedAgreement, setSelectedAgreement] =
+    useState<PaymentAgreement | null>(agreements[0] || null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isNewAgreementModalOpen, setIsNewAgreementModalOpen] = useState(false);
 
   // New Agreement Form
   const [newAgreementData, setNewAgreementData] = useState({
-    clientId: '',
-    clientName: '',
-    clientNit: '',
-    totalDebt: '',
-    agreedAmount: '',
-    initialBalance: '',
-    installmentsCount: '10',
-    frequency: 'Mensual' as const,
-    startDate: new Date().toLocaleDateString('es-GT'),
-    nextPaymentDate: '25/05/2025',
-    responsibleManager: 'María García',
-    observations: 'Convenio formalizado tras negociación de facilidades de pago.',
-    createdBy: 'María García',
+    clientId: "",
+    clientName: "",
+    clientNit: "",
+    totalDebt: "",
+    agreedAmount: "",
+    initialBalance: "",
+    installmentsCount: "10",
+    frequency: "Mensual" as const,
+    startDate: new Date().toLocaleDateString("es-GT"),
+    nextPaymentDate: "25/05/2025",
+    responsibleManager: "María García",
+    observations:
+      "Convenio formalizado tras negociación de facilidades de pago.",
+    createdBy: "María García",
   });
 
   // Filter agreements
-  const filteredAgreements = agreements.filter(cov => {
+  const filteredAgreements = agreements.filter((cov) => {
     const matchesSearch =
       cov.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cov.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cov.clientNit.includes(searchTerm);
 
-    const matchesStatus = statusFilter === 'Todos' || cov.status === statusFilter;
-    const matchesManager = managerFilter === 'Todos' || cov.responsibleManager === managerFilter;
+    const matchesStatus =
+      statusFilter === "Todos" || cov.status === statusFilter;
+    const matchesManager =
+      managerFilter === "Todos" || cov.responsibleManager === managerFilter;
 
     return matchesSearch && matchesStatus && matchesManager;
   });
@@ -82,54 +84,60 @@ export const ConveniosPage: React.FC = () => {
   const totalPages = Math.ceil(filteredAgreements.length / itemsPerPage) || 1;
   const paginatedAgreements = filteredAgreements.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
-  const getStatusBadge = (status: PaymentAgreement['status']): BadgeVariant => {
+  const getStatusBadge = (status: PaymentAgreement["status"]): BadgeVariant => {
     switch (status) {
-      case 'Al día':
-        return 'success';
-      case 'Activo':
-        return 'info';
-      case 'Atrasado':
-        return 'warning';
-      case 'Incumplido':
-        return 'danger';
-      case 'Liquidado':
-        return 'purple';
+      case "Al día":
+        return "success";
+      case "Activo":
+        return "info";
+      case "Atrasado":
+        return "warning";
+      case "Incumplido":
+        return "danger";
+      case "Liquidado":
+        return "purple";
       default:
-        return 'neutral';
+        return "neutral";
     }
   };
 
-  const handleCreateAgreement = (e: React.FormEvent) => {
+  const handleCreateAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
-    const agreedAmountNum = parseFloat(newAgreementData.agreedAmount) || 0;
-    const created = addAgreement({
-      clientId: newAgreementData.clientId || 'c-custom',
-      clientName: newAgreementData.clientName,
-      clientNit: newAgreementData.clientNit || 'CF',
-      totalDebt: parseFloat(newAgreementData.totalDebt) || agreedAmountNum,
-      agreedAmount: agreedAmountNum,
-      initialBalance: parseFloat(newAgreementData.initialBalance) || agreedAmountNum,
-      installmentsCount: parseInt(newAgreementData.installmentsCount, 10) || 10,
-      frequency: newAgreementData.frequency,
-      startDate: newAgreementData.startDate,
-      nextPaymentDate: newAgreementData.nextPaymentDate,
-      responsibleManager: newAgreementData.responsibleManager,
-      observations: newAgreementData.observations,
-      createdBy: newAgreementData.createdBy,
-      status: 'Al día',
-      installments: [],
-    });
+    try {
+      const agreedAmountNum = parseFloat(newAgreementData.agreedAmount) || 0;
+      const created = await addAgreement({
+        clientId: newAgreementData.clientId || "c-custom",
+        clientName: newAgreementData.clientName,
+        clientNit: newAgreementData.clientNit || "CF",
+        totalDebt: parseFloat(newAgreementData.totalDebt) || agreedAmountNum,
+        agreedAmount: agreedAmountNum,
+        initialBalance:
+          parseFloat(newAgreementData.initialBalance) || agreedAmountNum,
+        installmentsCount:
+          parseInt(newAgreementData.installmentsCount, 10) || 10,
+        frequency: newAgreementData.frequency,
+        startDate: newAgreementData.startDate,
+        nextPaymentDate: newAgreementData.nextPaymentDate,
+        responsibleManager: newAgreementData.responsibleManager,
+        observations: newAgreementData.observations,
+        createdBy: newAgreementData.createdBy,
+        status: "Al día",
+        installments: [],
+      });
 
-    setIsNewAgreementModalOpen(false);
-    setSelectedAgreement(created);
-    setIsDrawerOpen(true);
+      setIsNewAgreementModalOpen(false);
+      setSelectedAgreement(created);
+      setIsDrawerOpen(true);
+    } catch {
+      /* El error se muestra en el aviso global. */
+    }
   };
 
   const handleSelectClient = (clientId: string) => {
-    const found = clients.find(c => c.id === clientId);
+    const found = clients.find((c) => c.id === clientId);
     if (found) {
       setNewAgreementData({
         ...newAgreementData,
@@ -144,8 +152,18 @@ export const ConveniosPage: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    const headers = ['Convenio', 'Cliente', 'NIT', 'Saldo Inicial', 'Monto Convenido', 'Cuotas', 'Próximo Pago', 'Estado', 'Gestor'];
-    const rows = filteredAgreements.map(cov => [
+    const headers = [
+      "Convenio",
+      "Cliente",
+      "NIT",
+      "Saldo Inicial",
+      "Monto Convenido",
+      "Cuotas",
+      "Próximo Pago",
+      "Estado",
+      "Gestor",
+    ];
+    const rows = filteredAgreements.map((cov) => [
       cov.code,
       cov.clientName,
       cov.clientNit,
@@ -156,7 +174,7 @@ export const ConveniosPage: React.FC = () => {
       cov.status,
       cov.responsibleManager,
     ]);
-    exportToCSV('JME_Convenios_Pago', headers, rows);
+    exportToCSV("JME_Convenios_Pago", headers, rows);
   };
 
   return (
@@ -164,9 +182,12 @@ export const ConveniosPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Convenios de pago</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Convenios de pago
+          </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Registra, consulta y da seguimiento a los convenios de pago acordados con tus clientes.
+            Registra, consulta y da seguimiento a los convenios de pago
+            acordados con tus clientes.
           </p>
         </div>
 
@@ -195,7 +216,7 @@ export const ConveniosPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Convenios activos"
-          value="64"
+          value={agreements.filter((a) => a.amountPending > 0).length}
           icon={<FileText className="w-5 h-5" />}
           iconColor="blue"
           subtitle="Planes de refinanciamiento vigentes"
@@ -203,7 +224,11 @@ export const ConveniosPage: React.FC = () => {
 
         <StatCard
           label="Monto financiado"
-          value={<Currency amount={1245680.00} />}
+          value={
+            <Currency
+              amount={agreements.reduce((s, a) => s + a.agreedAmount, 0)}
+            />
+          }
           icon={<Coins className="w-5 h-5" />}
           iconColor="emerald"
           subtitle="Capital pactado en cuotas"
@@ -211,7 +236,11 @@ export const ConveniosPage: React.FC = () => {
 
         <StatCard
           label="Convenios al día"
-          value="18"
+          value={
+            agreements.filter(
+              (a) => a.status === "Atrasado" || a.status === "Incumplido",
+            ).length
+          }
           icon={<CalendarClock className="w-5 h-5" />}
           iconColor="amber"
           subtitle="Sin atrasos en cuotas programadas"
@@ -219,7 +248,7 @@ export const ConveniosPage: React.FC = () => {
 
         <StatCard
           label="% Cumplimiento"
-          value="78%"
+          value={`${(agreements.length ? (100 * agreements.filter((a) => a.status === "Al día" || a.status === "Liquidado").length) / agreements.length : 0).toFixed(1)}%`}
           icon={<Percent className="w-5 h-5" />}
           iconColor="purple"
           subtitle="Tasa de pago sobre compromisos"
@@ -240,13 +269,13 @@ export const ConveniosPage: React.FC = () => {
           <div className="w-40">
             <Select
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value)}
               options={[
-                { value: 'Todos', label: 'Estado: Todos' },
-                { value: 'Al día', label: 'Al día' },
-                { value: 'Atrasado', label: 'Atrasado' },
-                { value: 'Incumplido', label: 'Incumplido' },
-                { value: 'Liquidado', label: 'Liquidado' },
+                { value: "Todos", label: "Estado: Todos" },
+                { value: "Al día", label: "Al día" },
+                { value: "Atrasado", label: "Atrasado" },
+                { value: "Incumplido", label: "Incumplido" },
+                { value: "Liquidado", label: "Liquidado" },
               ]}
             />
           </div>
@@ -254,12 +283,12 @@ export const ConveniosPage: React.FC = () => {
           <div className="w-40">
             <Select
               value={managerFilter}
-              onChange={e => setManagerFilter(e.target.value)}
+              onChange={(e) => setManagerFilter(e.target.value)}
               options={[
-                { value: 'Todos', label: 'Gestor: Todos' },
-                { value: 'María García', label: 'María García' },
-                { value: 'Juan López', label: 'Juan López' },
-                { value: 'Rodrigo Muñoz', label: 'Rodrigo Muñoz' },
+                { value: "Todos", label: "Gestor: Todos" },
+                { value: "María García", label: "María García" },
+                { value: "Juan López", label: "Juan López" },
+                { value: "Rodrigo Muñoz", label: "Rodrigo Muñoz" },
               ]}
             />
           </div>
@@ -290,7 +319,7 @@ export const ConveniosPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedAgreements.map(cov => (
+                paginatedAgreements.map((cov) => (
                   <tr
                     key={cov.id}
                     onClick={() => {
@@ -306,7 +335,9 @@ export const ConveniosPage: React.FC = () => {
                       <div className="font-semibold text-slate-900 group-hover:text-blue-700">
                         {cov.clientName}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-mono">NIT: {cov.clientNit}</div>
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        NIT: {cov.clientNit}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-600">
                       <Currency amount={cov.initialBalance} />
@@ -328,7 +359,10 @@ export const ConveniosPage: React.FC = () => {
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
+                      <div
+                        className="flex items-center justify-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
                           onClick={() => {
                             setSelectedAgreement(cov);
@@ -367,7 +401,11 @@ export const ConveniosPage: React.FC = () => {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           title={`Convenio ${selectedAgreement.code}`}
-          badge={<Badge variant={getStatusBadge(selectedAgreement.status)}>{selectedAgreement.status}</Badge>}
+          badge={
+            <Badge variant={getStatusBadge(selectedAgreement.status)}>
+              {selectedAgreement.status}
+            </Badge>
+          }
           width="lg"
           footer={
             <div className="w-full flex items-center justify-between">
@@ -397,41 +435,69 @@ export const ConveniosPage: React.FC = () => {
               </h4>
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Cliente:</span>
-                  <strong className="text-slate-900 block">{selectedAgreement.clientName}</strong>
-                  <span className="text-slate-500 font-mono text-[11px]">NIT: {selectedAgreement.clientNit}</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Cliente:
+                  </span>
+                  <strong className="text-slate-900 block">
+                    {selectedAgreement.clientName}
+                  </strong>
+                  <span className="text-slate-500 font-mono text-[11px]">
+                    NIT: {selectedAgreement.clientNit}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Monto convenido:</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Monto convenido:
+                  </span>
                   <strong className="text-slate-900 font-mono text-sm block">
                     <Currency amount={selectedAgreement.agreedAmount} />
                   </strong>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Fecha de inicio:</span>
-                  <span className="text-slate-800 font-mono">{selectedAgreement.startDate}</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Fecha de inicio:
+                  </span>
+                  <span className="text-slate-800 font-mono">
+                    {selectedAgreement.startDate}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Cuotas acordadas:</span>
-                  <span className="text-slate-800 font-mono font-semibold">{selectedAgreement.installmentsCount} cuotas</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Cuotas acordadas:
+                  </span>
+                  <span className="text-slate-800 font-mono font-semibold">
+                    {selectedAgreement.installmentsCount} cuotas
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Frecuencia de pago:</span>
-                  <span className="text-slate-800">{selectedAgreement.frequency}</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Frecuencia de pago:
+                  </span>
+                  <span className="text-slate-800">
+                    {selectedAgreement.frequency}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Próximo pago:</span>
-                  <span className="text-blue-700 font-mono font-semibold">{selectedAgreement.nextPaymentDate}</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Próximo pago:
+                  </span>
+                  <span className="text-blue-700 font-mono font-semibold">
+                    {selectedAgreement.nextPaymentDate}
+                  </span>
                 </div>
 
                 <div className="col-span-2 pt-1 border-t border-slate-100">
-                  <span className="text-slate-400 block text-[11px]">Gestor responsable:</span>
-                  <span className="text-slate-800 font-medium">{selectedAgreement.responsibleManager}</span>
+                  <span className="text-slate-400 block text-[11px]">
+                    Gestor responsable:
+                  </span>
+                  <span className="text-slate-800 font-medium">
+                    {selectedAgreement.responsibleManager}
+                  </span>
                 </div>
               </div>
             </div>
@@ -450,9 +516,14 @@ export const ConveniosPage: React.FC = () => {
                     <Currency amount={selectedAgreement.amountPaid} />
                   </div>
                   <span className="text-[11px] text-emerald-700 mt-1 block">
-                    {selectedAgreement.agreedAmount > 0 
-                      ? ((selectedAgreement.amountPaid / selectedAgreement.agreedAmount) * 100).toFixed(1)
-                      : 0}% del total
+                    {selectedAgreement.agreedAmount > 0
+                      ? (
+                          (selectedAgreement.amountPaid /
+                            selectedAgreement.agreedAmount) *
+                          100
+                        ).toFixed(1)
+                      : 0}
+                    % del total
                   </span>
                 </div>
 
@@ -482,27 +553,36 @@ export const ConveniosPage: React.FC = () => {
               </div>
 
               <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
-                {selectedAgreement.installments.map(inst => (
-                  <div key={inst.number} className="p-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                {selectedAgreement.installments.map((inst) => (
+                  <div
+                    key={inst.number}
+                    className="p-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 font-mono text-[11px] flex items-center justify-center font-semibold">
                         {inst.number}
                       </span>
-                      <span className="font-semibold text-slate-800">Cuota {inst.number}</span>
-                      <span className="text-slate-400 font-mono text-[11px]">· {inst.dueDate}</span>
+                      <span className="font-semibold text-slate-800">
+                        Cuota {inst.number}
+                      </span>
+                      <span className="text-slate-400 font-mono text-[11px]">
+                        · {inst.dueDate}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <span className="font-mono font-bold text-slate-900">
                         <Currency amount={inst.amount} />
                       </span>
-                      {inst.status === 'Pagado' ? (
+                      {inst.status === "Pagado" ? (
                         <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Pagado
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />{" "}
+                          Pagado
                         </span>
-                      ) : inst.status === 'Atrasado' ? (
+                      ) : inst.status === "Atrasado" ? (
                         <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-medium border border-rose-200">
-                          <AlertCircle className="w-3 h-3 text-rose-600" /> Atrasado
+                          <AlertCircle className="w-3 h-3 text-rose-600" />{" "}
+                          Atrasado
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
@@ -517,12 +597,15 @@ export const ConveniosPage: React.FC = () => {
 
             {/* Observations matching PDF */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs space-y-1.5">
-              <span className="font-bold text-slate-800 block">Observaciones:</span>
+              <span className="font-bold text-slate-800 block">
+                Observaciones:
+              </span>
               <p className="text-slate-600 leading-relaxed italic">
                 "{selectedAgreement.observations}"
               </p>
               <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-200">
-                Creado por {selectedAgreement.createdBy} · {selectedAgreement.createdAt}
+                Creado por {selectedAgreement.createdBy} ·{" "}
+                {selectedAgreement.createdAt}
               </div>
             </div>
           </div>
@@ -545,11 +628,11 @@ export const ConveniosPage: React.FC = () => {
             <select
               required
               value={newAgreementData.clientId}
-              onChange={e => handleSelectClient(e.target.value)}
+              onChange={(e) => handleSelectClient(e.target.value)}
               className="w-full bg-white border border-slate-300 rounded-lg text-sm text-slate-900 px-3 py-2 focus:ring-2 focus:ring-[#0F1E36]/20"
             >
               <option value="">-- Seleccionar cliente --</option>
-              {clients.map(c => (
+              {clients.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.code}) - Deuda: Q {c.overdueBalance.toFixed(2)}
                 </option>
@@ -562,13 +645,23 @@ export const ConveniosPage: React.FC = () => {
               label="Nombre del cliente"
               required
               value={newAgreementData.clientName}
-              onChange={e => setNewAgreementData({ ...newAgreementData, clientName: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  clientName: e.target.value,
+                })
+              }
               placeholder="Ej. Distribuidora del Norte, S.A."
             />
             <Input
               label="NIT del cliente"
               value={newAgreementData.clientNit}
-              onChange={e => setNewAgreementData({ ...newAgreementData, clientNit: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  clientNit: e.target.value,
+                })
+              }
               placeholder="123456-7"
             />
           </div>
@@ -580,7 +673,12 @@ export const ConveniosPage: React.FC = () => {
               step="0.01"
               required
               value={newAgreementData.totalDebt}
-              onChange={e => setNewAgreementData({ ...newAgreementData, totalDebt: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  totalDebt: e.target.value,
+                })
+              }
             />
             <Input
               label="Monto pactado (Q)"
@@ -588,7 +686,12 @@ export const ConveniosPage: React.FC = () => {
               step="0.01"
               required
               value={newAgreementData.agreedAmount}
-              onChange={e => setNewAgreementData({ ...newAgreementData, agreedAmount: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  agreedAmount: e.target.value,
+                })
+              }
             />
             <Input
               label="Número de cuotas"
@@ -597,7 +700,12 @@ export const ConveniosPage: React.FC = () => {
               max="48"
               required
               value={newAgreementData.installmentsCount}
-              onChange={e => setNewAgreementData({ ...newAgreementData, installmentsCount: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  installmentsCount: e.target.value,
+                })
+              }
             />
           </div>
 
@@ -605,26 +713,41 @@ export const ConveniosPage: React.FC = () => {
             <Select
               label="Frecuencia de cuotas"
               value={newAgreementData.frequency}
-              onChange={e => setNewAgreementData({ ...newAgreementData, frequency: e.target.value as any })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  frequency: e.target.value as any,
+                })
+              }
               options={[
-                { value: 'Mensual', label: 'Mensual' },
-                { value: 'Quincenal', label: 'Quincenal' },
-                { value: 'Semanal', label: 'Semanal' },
+                { value: "Mensual", label: "Mensual" },
+                { value: "Quincenal", label: "Quincenal" },
+                { value: "Semanal", label: "Semanal" },
               ]}
             />
             <Input
               label="Fecha de inicio"
               value={newAgreementData.startDate}
-              onChange={e => setNewAgreementData({ ...newAgreementData, startDate: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  startDate: e.target.value,
+                })
+              }
             />
             <Select
               label="Gestor responsable"
               value={newAgreementData.responsibleManager}
-              onChange={e => setNewAgreementData({ ...newAgreementData, responsibleManager: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  responsibleManager: e.target.value,
+                })
+              }
               options={[
-                { value: 'María García', label: 'María García' },
-                { value: 'Juan López', label: 'Juan López' },
-                { value: 'Rodrigo Muñoz', label: 'Rodrigo Muñoz' },
+                { value: "María García", label: "María García" },
+                { value: "Juan López", label: "Juan López" },
+                { value: "Rodrigo Muñoz", label: "Rodrigo Muñoz" },
               ]}
             />
           </div>
@@ -636,7 +759,12 @@ export const ConveniosPage: React.FC = () => {
             <textarea
               rows={3}
               value={newAgreementData.observations}
-              onChange={e => setNewAgreementData({ ...newAgreementData, observations: e.target.value })}
+              onChange={(e) =>
+                setNewAgreementData({
+                  ...newAgreementData,
+                  observations: e.target.value,
+                })
+              }
               className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F1E36]/20"
             />
           </div>

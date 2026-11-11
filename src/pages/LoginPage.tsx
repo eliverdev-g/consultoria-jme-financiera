@@ -1,29 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Lock, 
-  Mail, 
-  ArrowRight, 
-  CheckCircle2, 
-  Sparkles,
-  UserCheck
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/atoms/Button';
-import { Input } from '../components/atoms/Input';
-import { UserRole } from '../types';
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Lock, Mail, ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Button } from "../components/atoms/Button";
+import { Input } from "../components/atoms/Input";
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('ana.lopez@jme.com.gt');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState("jlopez@jme.com.gt");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login, loginAsRole } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const from = (location.state as any)?.from?.pathname || "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,16 +25,11 @@ export const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate(from, { replace: true });
-    } catch {
-      setError('Credenciales inválidas. Verifique su correo o seleccione un rol demo.');
+    } catch (error) {
+      setError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickRole = (role: UserRole) => {
-    loginAsRole(role);
-    navigate('/dashboard', { replace: true });
   };
 
   return (
@@ -64,9 +51,12 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <div className="text-center mb-8">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Iniciar Sesión</h3>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Iniciar Sesión
+          </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Gestión de créditos en mora y cobranza automatizada mediante alertas predictivas
+            Gestión de créditos en mora y cobranza automatizada mediante alertas
+            predictivas
           </p>
         </div>
       </div>
@@ -84,7 +74,7 @@ export const LoginPage: React.FC = () => {
               label="Correo Electrónico"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="usuario@jme.com.gt"
               required
               leftIcon={<Mail className="w-4 h-4" />}
@@ -94,25 +84,16 @@ export const LoginPage: React.FC = () => {
               label="Contraseña"
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Contraseña"
               required
               leftIcon={<Lock className="w-4 h-4" />}
             />
 
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span>Recordar sesión con Token JWT</span>
-              </label>
-              <a href="#recuperar" onClick={(e) => { e.preventDefault(); }} className="text-blue-600 hover:text-blue-800 font-medium">
-                ¿Olvidó contraseña?
-              </a>
-            </div>
+            <p className="text-xs text-slate-500 pt-1">
+              Sesión protegida de 8 horas. Si necesita recuperar el acceso,
+              contacte al administrador.
+            </p>
 
             <Button
               type="submit"
@@ -125,55 +106,6 @@ export const LoginPage: React.FC = () => {
               Acceder al Sistema
             </Button>
           </form>
-
-          {/* Quick Demo Access Buttons */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                Acceso Rápido por Rol (Demostración)
-              </span>
-              <span className="text-[10px] text-slate-400">Tokens preconfigurados</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickRole('Administrador')}
-                className="p-2.5 text-left rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-colors cursor-pointer group"
-              >
-                <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700">Administrador</div>
-                <div className="text-[11px] text-slate-500">Ana María López</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickRole('Gestor de Cobro')}
-                className="p-2.5 text-left rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-colors cursor-pointer group"
-              >
-                <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700">Gestor de Cobro</div>
-                <div className="text-[11px] text-slate-500">María García</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickRole('Supervisor')}
-                className="p-2.5 text-left rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-colors cursor-pointer group"
-              >
-                <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700">Supervisor</div>
-                <div className="text-[11px] text-slate-500">Rodrigo Muñoz</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickRole('Consultor')}
-                className="p-2.5 text-left rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-colors cursor-pointer group"
-              >
-                <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700">Consultor</div>
-                <div className="text-[11px] text-slate-500">Carla Mejía</div>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security and Feature Badges */}
@@ -184,7 +116,7 @@ export const LoginPage: React.FC = () => {
           </div>
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-blue-600" />
-            <span>Motor Predictivo IA</span>
+            <span>Alertas por reglas de mora</span>
           </div>
         </div>
       </div>
