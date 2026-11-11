@@ -17,7 +17,7 @@ if (production && !apiOnly) {
   });
   app.use(vite.middlewares);
 }
-const server = app.listen(Number(process.env.PORT || 3000), "0.0.0.0", () =>
+const server = app.listen(Number(process.env.PORT || 3000), process.env.HOST || "0.0.0.0", () =>
   console.log(
     "JME disponible en http://localhost:" + (process.env.PORT || 3000),
   ),
